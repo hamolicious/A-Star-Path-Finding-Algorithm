@@ -40,3 +40,9 @@ class Node:
 
         if self.rect.collidepoint(mousePos) and self.mode == 'closed':
             pygame.display.set_caption('F cost {} | G cost {} | H cost {}'.format(self.f, self.g, self.h))
+
+    def recalculate(self,a, b):
+        self.g = int(dist(self.x, self.y, a.x, a.y))
+        self.h = int(dist(self.x, self.y, b.x, b.y))
+        self.f = self.g + self.h
+

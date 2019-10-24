@@ -2,38 +2,30 @@ import pygame
 from nodeClass import Node
 from math import sqrt
 from random import randint, choice
+import button
+import start_end_nodes
 
 pygame.init()
+pygame.font.init()
 
-size = [700, 700]
+size = [1300, 700]
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('')
 
 clock = pygame.time.Clock()
-fps = 30
+fps = 60
 
 # create points a and b
-a, b = None, None
-
-xs = []
-ys = []
-
-for i in range(0, 700, 20):
-    for j in range(0, 700, 20):
-        xs.append(j)
-        ys.append(i)
-
-a = pygame.math.Vector2(choice(xs), choice(ys))
-b = pygame.math.Vector2(choice(xs), choice(ys))
+a = start_end_nodes.Node(20, 20, 0)
+b = start_end_nodes.Node(660, 660, 1)
 
 # generate a node grid
 grid = []
+snap = []
 for i in range(0, 700, 20):
     for j in range(0, 700, 20):
-        if randint(0, 10) > 6 and j != a.x and i != a.y and j != b.x and i != b.y:
-            grid.append(Node(j, i, 'wall', a, b))
-        else:
-            grid.append(Node(j, i, 'hidden', a, b))
+        grid.append(Node(j, i, 'hidden', a, b))
+        snap.append(pygame.Rect(j, i, 20, 20))
 
 # init open and closed lists
 open_nodes = []
@@ -44,11 +36,45 @@ for cell in grid:
     if cell.g == 0:
         start_node = grid.index(cell)
 
-# add starting node to open list 
-open_nodes.append(grid[start_node])
-grid[start_node].mode = 'open'
-
 done = False
+
+#region Buttons
+
+    # assign a font
+font = pygame.font.SysFont('ariel', 30)
+
+    # exec button
+btn_start = button.Button([51,51,51], [70,70,70], 800, 20, 200, 50, font, 'Start')
+
+btn_inc = button.Button([51,51,51], [70,70,70], 800, 100, 100, 50, font, '      /\\')
+btn_dec = button.Button([51,51,51], [70,70,70], 800, 170, 100, 50, font, '      \\/')
+#endregion
+
+    # delay
+counter = 0
+step = 0
+    #ui manager
+
+doOnce = 0
+
+def uiDraw(screen):
+    screen.fill(0)
+
+    pygame.draw.rect(screen, [51, 51, 51], (0, 0, 700, 700), 1)
+    pygame.draw.line(screen, [51, 51, 51], (710, 90), (1280, 90), 2)
+
+    btn_start.show(screen)
+    btn_dec.show(screen)
+    btn_inc.show(screen)
+
+    screen.blit(font.render('Delay {}'.format(counter), 1, [255, 255, 255]), (710, 135))
+
+    a.show(screen)
+    b.show(screen)
+
+start = False
+
+locations = []
 
 while not done:
     for event in pygame.event.get():
@@ -56,77 +82,134 @@ while not done:
             pygame.display.quit()
             pygame.quit()
 
-    if len(open_nodes) == 0:
-        done = True
+    if not start:
+        uiDraw(screen)
 
-    # show nodes
-    for cell in grid:
-        cell.show(screen)
+            # mouse pos
+        pos = pygame.mouse.get_pos()
+            # mouse key presses
+        pressed = pygame.mouse.get_pressed()
+            # keyboard key presses
+        key = pygame.key.get_pressed()
 
-    # show a and b points
-    pygame.draw.rect(screen, [255, 255, 0], (a.x, a.y, 20, 20))
-    pygame.draw.rect(screen, [255, 0, 255], (b.x, b.y, 20, 20))
+        uiDraw(screen)
 
-    # look for lowest f cost
-    lowestF = 10**10
-    lowestH = 10**10
-    for node in open_nodes:
-        if node.f < lowestF:
-            lowestF = node.f
-            lowestH = node.h
-            current_node = node
+        #region Buttons
+        btn_start.onHover(pos)
+        if btn_start.onPressed(pos, pressed):
+            start = True
 
-        if lowestF == node.f:
-            if node.h < lowestH:
-                lowestF = node.f
-                lowestH = node.h
-                current_node = node
+        btn_inc.onHover(pos)
+        if btn_inc.onPressed(pos, pressed):
+            counter += 1
+        
+        btn_dec.onHover(pos)
+        if btn_dec.onPressed(pos, pressed):
+            counter -= 1
+        #endregion
 
-    # switch lists 
-    open_nodes.remove(current_node)
-    closed_nodes.append(current_node)
-    current_node.mode = 'closed'
+        if a.update(pos, pressed, snap) == False and b.update(pos, pressed, snap) == False:
+            if pressed == (1, 0, 0):
+                index = pygame.Rect(pos[0], pos[1], 1, 1).collidelist(snap)
 
-    # look for neighbours
-    temp = []
-    for node in grid:
-        if node.x == current_node.x + 20 and node.y == current_node.y:
-            temp.append(node)
+                if snap[index][0] != a.x or snap[index][0] != b.x or snap[index][1] != a.y or snap[index][1] != b.y:
+                    locations.append(snap[index])
 
-        if node.x == current_node.x - 20 and node.y == current_node.y:
-            temp.append(node)
+        temp = []
+        for loc in locations:
+            pygame.draw.rect(screen, [100, 100, 100], loc, 0)
 
-        if node.x == current_node.x and node.y == current_node.y + 20:
-            temp.append(node)
+            if (loc[0] == a.x and loc[1] == a.y) or (loc[0] == b.x and loc[1] == b.y):
+                pass
+            else:
+                temp.append(loc)
+        locations = temp
 
-        if node.x == current_node.x and node.y == current_node.y - 20:
-            temp.append(node)
+    if start and doOnce == 0:
+        for node in grid:
+            node.recalculate(a, b)
 
-        # hash out these to allow only 4 directional movement
-        # if node.x == current_node.x + 20 and node.y == current_node.y + 20:
-        #     temp.append(node)
+            for loc in locations:
+                if node.x == loc[0] and node.y == loc[1]:
+                    node.mode = 'wall'
+        
+            if node.g == 0:
+                start_node = grid.index(node)
 
-        # if node.x == current_node.x + 20 and node.y == current_node.y - 20:
-        #     temp.append(node)
+        if counter < 0:
+            counter = 0
 
-        # if node.x == current_node.x - 20 and node.y == current_node.y + 20:
-        #     temp.append(node)
+        # add starting node to open list 
+        open_nodes.append(grid[start_node])
+        grid[start_node].mode = 'open'
 
-        # if node.x == current_node.x - 20 and node.y == current_node.y - 20:
-        #     temp.append(node)
+        doOnce += 1
 
-    # add neighbour to open list if not there and parent this node to the current node
-    for node in temp:
-        if closed_nodes.count(node) == 0 and node.mode != 'wall':
-            if open_nodes.count(node) == 0:
-                open_nodes.append(node)
-                node.mode = 'open'
+    if start:
+        if step == counter:
+            #region A* Path
+            if len(open_nodes) == 0:
+                break
 
-            node.parent = current_node
+            # show nodes
+            for cell in grid:
+                cell.show(screen)
 
-    # if node end is found, break
-    if current_node.x == b.x and current_node.y == b.y:
-        done = True
+            # show a and b points
+            pygame.draw.rect(screen, [255, 255, 0], (a.x, a.y, 20, 20))
+            pygame.draw.rect(screen, [255, 0, 255], (b.x, b.y, 20, 20))
+
+            # look for lowest f cost
+            lowestF = 10**10
+            lowestH = 10**10
+            for node in open_nodes:
+                if node.f < lowestF:
+                    lowestF = node.f
+                    lowestH = node.h
+                    current_node = node
+
+                if lowestF == node.f:
+                    if node.h < lowestH:
+                        lowestF = node.f
+                        lowestH = node.h
+                        current_node = node
+
+            # switch lists 
+            open_nodes.remove(current_node)
+            closed_nodes.append(current_node)
+            current_node.mode = 'closed'
+
+            # look for neighbours
+            temp = []
+            for node in grid:
+                if node.x == current_node.x + 20 and node.y == current_node.y:
+                    temp.append(node)
+
+                if node.x == current_node.x - 20 and node.y == current_node.y:
+                    temp.append(node)
+
+                if node.x == current_node.x and node.y == current_node.y + 20:
+                    temp.append(node)
+
+                if node.x == current_node.x and node.y == current_node.y - 20:
+                    temp.append(node)
+
+            # add neighbour to open list if not there and parent this node to the current node
+            for node in temp:
+                if closed_nodes.count(node) == 0 and node.mode != 'wall':
+                    if open_nodes.count(node) == 0:
+                        open_nodes.append(node)
+                        node.mode = 'open'
+
+                    node.parent = current_node
+
+            # if node end is found, break
+            if current_node.x == b.x and current_node.y == b.y:
+                done = True
+            #endregion
+            step = 0
+        else:
+            step += 1
 
     pygame.display.update()
     clock.tick(fps)
