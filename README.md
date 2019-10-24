@@ -1,6 +1,11 @@
 # A-Star-Path-Finding-Algorithm
 A* Path Finding algorithm written in Python using PyGame
 
+A great explanation and pseudocode can be found here:
+```
+https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
+```
+
 To use this script use the following commands:
 ```
 pip install pygame
