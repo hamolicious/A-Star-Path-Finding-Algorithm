@@ -1,4 +1,4 @@
-# A-Path-Finding-Algorithm
+# A-Star-Path-Finding-Algorithm
 A* Path Finding algorithm written in Python using PyGame
 
 To use this script use the following commands:
