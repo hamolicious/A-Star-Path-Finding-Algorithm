@@ -6,8 +6,8 @@ A great explanation and pseudocode can be found here:
 https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
 ```
 
-<strong>Required</strong>
-Python 3.8
+<strong>Required</strong><br>
+Python 3.8<br>
 PyGame 2.0.0.dev6
 
 To use this script use the following commands:
