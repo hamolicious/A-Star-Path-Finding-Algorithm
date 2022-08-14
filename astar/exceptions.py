@@ -1,0 +1,3 @@
+
+class OutOfGrid(Exception) : pass
+
